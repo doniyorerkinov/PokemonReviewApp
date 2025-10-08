@@ -40,7 +40,6 @@ namespace PokemonReviewApp
                         {
                             FirstName = "Jack",
                             LastName = "London",
-                            Gym = "Brocks Gym",
                             Country = new Country()
                             {
                                 Name = "Kanto"
@@ -71,7 +70,6 @@ namespace PokemonReviewApp
                         {
                             FirstName = "Harry",
                             LastName = "Potter",
-                            Gym = "Mistys Gym",
                             Country = new Country()
                             {
                                 Name = "Saffron City"
@@ -102,7 +100,6 @@ namespace PokemonReviewApp
                         {
                             FirstName = "Ash",
                             LastName = "Ketchum",
-                            Gym = "Ashs Gym",
                             Country = new Country()
                             {
                                 Name = "Millet Town"

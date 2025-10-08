@@ -30,7 +30,7 @@ namespace PokemonReviewApp.Repository
 
         public decimal GetPokemonRating(int pokeId)
         {
-            var reviews = _context.Reviews.Where(p => p.Pokemon.Id != pokeId);
+            var reviews = _context.Reviews.Where(p => p.Pokemon.Id == pokeId);
 
             if(reviews.Count() <= 0)
             {
@@ -42,6 +42,36 @@ namespace PokemonReviewApp.Repository
         public ICollection<Pokemon> GetPokemons()
         {
             return _context.Pokemons.OrderBy(p => p.Id).ToList();
+        }
+
+        public bool CreatePokemon(int ownerId, int categoryId, Pokemon pokemon)
+        {
+            var pokemonOwnerEntity = _context.Owners.Where(o => o.Id == ownerId).FirstOrDefault();
+            var pokemonCategoryEntity = _context.Categories.Where(c => c.Id == categoryId).FirstOrDefault();
+
+            var pokemonOwner = new PokemonOwner()
+            {
+                Owner = pokemonOwnerEntity,
+                Pokemon = pokemon
+            };
+            _context.Add(pokemonOwner);
+            var pokemonCategory = new PokemonCategory()
+            {
+                Category = pokemonCategoryEntity,
+                Pokemon = pokemon
+            };
+
+            _context.Add(pokemonCategory);
+
+            _context.Add(pokemon);
+            
+            return Save();
+        }
+
+        public bool Save()
+        {
+            var saved = _context.SaveChanges();
+            return saved > 0;
         }
     }
 }

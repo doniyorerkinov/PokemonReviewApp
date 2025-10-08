@@ -12,11 +12,15 @@ namespace PokemonReviewApp.Helper
             // bu siz database'dagi ortiqcha ma'lumotlarni tashqariga chiqarmasligizga yordam beradi
             CreateMap<Pokemon, PokemonDto>();
 
+            // Category
             CreateMap<Category, CategoryDto>();
+            CreateMap<CategoryDto, Category>();
 
             CreateMap<Country, CountryDto>();
+            CreateMap<CountryDto, Country>();
 
             CreateMap<Owner, OwnerDto>();
+            CreateMap<OwnerDto, Owner>();
 
             CreateMap<Review, ReviewDto>();
 
