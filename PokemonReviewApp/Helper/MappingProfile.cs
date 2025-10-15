@@ -11,6 +11,7 @@ namespace PokemonReviewApp.Helper
             // Pkemondan PokemonDto ma'lumotlarni ko'chiradi faqatgina mos kelganlarini
             // bu siz database'dagi ortiqcha ma'lumotlarni tashqariga chiqarmasligizga yordam beradi
             CreateMap<Pokemon, PokemonDto>();
+            CreateMap<PokemonDto, Pokemon>();
 
             // Category
             CreateMap<Category, CategoryDto>();
@@ -23,8 +24,10 @@ namespace PokemonReviewApp.Helper
             CreateMap<OwnerDto, Owner>();
 
             CreateMap<Review, ReviewDto>();
+            CreateMap<ReviewDto, Review>();
 
             CreateMap<Reviewer, ReviewerDto>();
+            CreateMap<ReviewerDto, Reviewer>();
         }
     }
 }

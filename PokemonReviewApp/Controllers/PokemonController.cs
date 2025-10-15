@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using PokemonReviewApp.Dto;
 using PokemonReviewApp.Interfaces;
 using PokemonReviewApp.Models;
+using PokemonReviewApp.Repository;
 
 namespace PokemonReviewApp.Controllers
 {
@@ -13,12 +14,16 @@ namespace PokemonReviewApp.Controllers
     public class PokemonController : Controller
     {
         private readonly IPokemonRepository _pokemonRepository;
+        private readonly IOwnerRepository _ownerRepository;
+        private readonly ICategoryRepository _categoryRepository;
         private readonly IMapper _mapper;
 
-        public PokemonController(IPokemonRepository pokemonInterface, IMapper mapper)
+        public PokemonController(IPokemonRepository pokemonInterface, IOwnerRepository ownerRepository, ICategoryRepository categoryRepository, IMapper mapper)
         {
             _pokemonRepository = pokemonInterface;
             _mapper = mapper;
+            _ownerRepository = ownerRepository;
+            _categoryRepository = categoryRepository;
         }
 
 
@@ -93,6 +98,46 @@ namespace PokemonReviewApp.Controllers
             return Ok(result);
         }
 
+        // Yangi pokemon yaratadi
+        [HttpPost("Create")]
+        [ProducesResponseType(204)]
+        [ProducesResponseType(400)]
 
-    }
+        public IActionResult CreatePokemon([FromQuery] int ownerId, [FromQuery] int categoryId, [FromBody] PokemonDto pokemonCreate)
+        {
+            if (pokemonCreate == null)
+            {
+                return BadRequest(ModelState);
+            }
+            var pokemons = _pokemonRepository.GetPokemons()
+                .Where(c => c.Name.Trim().ToUpper() == pokemonCreate.Name.TrimEnd().ToUpper())
+                .FirstOrDefault();
+            if (pokemons != null)
+            {
+                ModelState.AddModelError("", "Pokémon already exists");
+                return StatusCode(422, ModelState);
+            }
+            if (ownerId == 0 || !_ownerRepository.OwnerExists(ownerId))
+            {
+                ModelState.AddModelError("", "Owner not found");
+                return StatusCode(422, ModelState);
+            }
+            if (categoryId == 0 || !_categoryRepository.CategoryExist(categoryId))
+            {
+                ModelState.AddModelError("", "Category not found");
+                return StatusCode(422, ModelState);
+            }
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+            var pokemonMap = _mapper.Map<Pokemon>(pokemonCreate);
+            if (!_pokemonRepository.CreatePokemon(ownerId, categoryId, pokemonMap))
+            {
+                ModelState.AddModelError("", "Something went wrong while saving");
+                return StatusCode(500, ModelState);
+            }
+            return Ok("Successfully created");
+            }
+        }
 }
