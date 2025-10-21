@@ -37,6 +37,19 @@ namespace PokemonReviewApp.Repository
             return Save();
         }
 
+        public bool DeleteCategory(int categoryId)
+        {
+            var category = GetCategory(categoryId);
+            _context.Remove(category);
+            return Save();
+        }
+
+        public bool UpdateCategory(Category category)
+        {
+            _context.Update(category);
+            return Save();
+        }
+
         public bool Save()
         {
             return _context.SaveChanges() > 0;

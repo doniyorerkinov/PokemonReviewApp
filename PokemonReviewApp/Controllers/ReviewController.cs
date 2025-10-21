@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using PokemonReviewApp.Dto;
 using PokemonReviewApp.Interfaces;
 using PokemonReviewApp.Models;
+using PokemonReviewApp.Repository;
 
 namespace PokemonReviewApp.Controllers
 {
@@ -11,11 +12,15 @@ namespace PokemonReviewApp.Controllers
     public class ReviewController : Controller
     {
         private readonly IReviewRepository _reviewRepository;
+        private readonly IPokemonRepository _pokemonRepository;
+        private readonly IReviewerRepository _reviewerRepository;
         private readonly IMapper _mapper;
 
-        public ReviewController(IReviewRepository reviewRepository, IMapper mapper)
+        public ReviewController(IReviewRepository reviewRepository, IReviewerRepository reviewerRepository, IPokemonRepository pokemonRepository, IMapper mapper)
         {
             _reviewRepository = reviewRepository;
+            _pokemonRepository = pokemonRepository;
+            _reviewerRepository = reviewerRepository;
             _mapper = mapper;
         }
 
@@ -82,6 +87,81 @@ namespace PokemonReviewApp.Controllers
 
             if (!ModelState.IsValid) { return BadRequest(ModelState); }
             return Ok(result);
+        }
+
+        // Yangi Review yaratadi
+        [HttpPost("Create")]
+        [ProducesResponseType(204)]
+        [ProducesResponseType(400)]
+        public IActionResult CreateReview([FromBody] ReviewDto reviewCreate)
+        {
+            if (reviewCreate == null)
+            {
+                return BadRequest(ModelState);
+            }
+
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var reviewMap = _mapper.Map<Review>(reviewCreate);
+            reviewMap.Pokemon = _pokemonRepository.GetPokemon(reviewCreate.PokemonId);
+            reviewMap.Reviewer = _reviewerRepository.GetReviewer(reviewCreate.ReviewerId);
+
+            if (!_reviewRepository.CreateReview(reviewMap))
+            {
+                ModelState.AddModelError("", "Something went wrong while saving");
+                return StatusCode(500, ModelState);
+            }
+            return Ok("Successfully created");
+        }
+
+        [HttpPut("Update")]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(204)]
+        public IActionResult UpdateReview([FromBody] ReviewDto updateReview)
+        {
+            if (updateReview == null)
+            {
+                return BadRequest(ModelState);
+            }
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+            var reviewMap = _mapper.Map<Review>(updateReview);
+            reviewMap.Pokemon = _pokemonRepository.GetPokemon(updateReview.PokemonId);
+            reviewMap.Reviewer = _reviewerRepository.GetReviewer(updateReview.ReviewerId);
+            if (!_reviewRepository.UpdateReview(reviewMap))
+            {
+                ModelState.AddModelError("", "Something went wrong while updating");
+                return StatusCode(500, ModelState);
+            }
+            return Ok("Successfully updated");
+        }
+
+        [HttpDelete("Delete")]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(204)]
+        [ProducesResponseType(404)]
+        public IActionResult DeleteReview(int reviewId)
+        {
+            if (!_reviewRepository.ReviewExists(reviewId))
+            {
+                return NotFound();
+            }
+            var reviewToDelete = _reviewRepository.GetReview(reviewId);
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+            if (!_reviewRepository.DeleteReview(reviewId))
+            {
+                ModelState.AddModelError("", "Something went wrong while deleting");
+                return StatusCode(500, ModelState);
+            }
+            return Ok("Successfully deleted");
         }
     }
 }

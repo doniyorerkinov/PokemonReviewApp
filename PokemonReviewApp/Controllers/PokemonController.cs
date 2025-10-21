@@ -47,13 +47,13 @@ namespace PokemonReviewApp.Controllers
         [ProducesResponseType(200, Type = typeof(Pokemon))]
         [ProducesResponseType(404)]
         [ProducesResponseType(400)]
-        public IActionResult GetPokemon(int id) 
+        public IActionResult GetPokemon(int id)
         {
-            
-            if(!ModelState.IsValid) { return BadRequest(ModelState); }
-            if (!_pokemonRepository.ExistPokemon(id)) 
+
+            if (!ModelState.IsValid) { return BadRequest(ModelState); }
+            if (!_pokemonRepository.ExistPokemon(id))
             {
-                return NotFound(new {message = "Pokémon not found with the provided ID." });
+                return NotFound(new { message = "Pokémon not found with the provided ID." });
             }
             var pokemon = _mapper.Map<PokemonDto>(_pokemonRepository.GetPokemon(id));
             return Ok(pokemon);
@@ -62,18 +62,18 @@ namespace PokemonReviewApp.Controllers
         [HttpGet("Search")]
         [ProducesResponseType(200, Type = typeof(Pokemon))]
         [ProducesResponseType(404)]
-        public IActionResult GetPokemon(string search) 
+        public IActionResult GetPokemon(string search)
         {
             var pokemons = _pokemonRepository.SearchPokemon(search);
-            
-            if(!ModelState.IsValid) { return BadRequest(ModelState); }
-            if (pokemons == null) 
+
+            if (!ModelState.IsValid) { return BadRequest(ModelState); }
+            if (pokemons == null)
             {
-                return NotFound(new {message = "Pokémon not found with the provided ID." });
+                return NotFound(new { message = "Pokémon not found with the provided ID." });
             }
             return Ok(pokemons);
         }
-        
+
         // Pokemonni id bo'yicha qidirib bor yo'qligini bilib keladi
         [HttpGet("CheckExist")]
         [ProducesResponseType(200, Type = typeof(bool))]
@@ -103,7 +103,7 @@ namespace PokemonReviewApp.Controllers
         [ProducesResponseType(204)]
         [ProducesResponseType(400)]
 
-        public IActionResult CreatePokemon([FromQuery] int ownerId, [FromQuery] int categoryId, [FromBody] PokemonDto pokemonCreate)
+        public IActionResult CreatePokemon([FromBody] PokemonDto pokemonCreate)
         {
             if (pokemonCreate == null)
             {
@@ -116,6 +116,41 @@ namespace PokemonReviewApp.Controllers
             {
                 ModelState.AddModelError("", "Pokémon already exists");
                 return StatusCode(422, ModelState);
+            }
+            if (pokemonCreate.OwnerId == 0 || !_ownerRepository.OwnerExists(pokemonCreate.OwnerId))
+            {
+                ModelState.AddModelError("", "Owner not found");
+                return StatusCode(422, ModelState);
+            }
+            if (pokemonCreate.CategoryId == 0 || !_categoryRepository.CategoryExist(pokemonCreate.CategoryId))
+            {
+                ModelState.AddModelError("", "Category not found");
+                return StatusCode(422, ModelState);
+            }
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+            if (!_pokemonRepository.CreatePokemon(pokemonCreate))
+            {
+                ModelState.AddModelError("", "Something went wrong while saving");
+                return StatusCode(500, ModelState);
+            }
+            return Ok("Successfully created");
+        }
+
+        [HttpPut("Update")]
+        [ProducesResponseType(204)]
+        [ProducesResponseType(400)]
+        public IActionResult UpdatePokemon([FromQuery] int pokemonId, [FromQuery] int ownerId, [FromQuery] int categoryId, [FromBody] PokemonDto updatedPokemon)
+        {
+            if (updatedPokemon == null)
+            {
+                return BadRequest(ModelState);
+            }
+            if (pokemonId != updatedPokemon.Id)
+            {
+                return BadRequest(ModelState);
             }
             if (ownerId == 0 || !_ownerRepository.OwnerExists(ownerId))
             {
@@ -131,13 +166,31 @@ namespace PokemonReviewApp.Controllers
             {
                 return BadRequest(ModelState);
             }
-            var pokemonMap = _mapper.Map<Pokemon>(pokemonCreate);
-            if (!_pokemonRepository.CreatePokemon(ownerId, categoryId, pokemonMap))
+            var pokemonMap = _mapper.Map<Pokemon>(updatedPokemon);
+            if (!_pokemonRepository.UpdatePokemon(ownerId, categoryId, pokemonMap))
             {
-                ModelState.AddModelError("", "Something went wrong while saving");
+                ModelState.AddModelError("", "Something went wrong while updating");
                 return StatusCode(500, ModelState);
             }
-            return Ok("Successfully created");
-            }
+            return Ok("Successfully updated");
         }
+
+        [HttpDelete("Delete")]
+        [ProducesResponseType(204)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(404)]
+        public IActionResult DeletePokemon([FromQuery] int pokemonId)
+        {
+            var pokemon = _pokemonRepository.GetPokemon(pokemonId);
+
+            if (!ModelState.IsValid) { return BadRequest(ModelState); }
+            if (pokemon == null)
+            {
+                return NotFound(new { message = "Pokémon not found with the provided ID." });
+            }
+            if(!_pokemonRepository.DeletePokemon(pokemonId))
+                return BadRequest("Something went wrong");
+            return Ok();
+        }
+    }
 }

@@ -1,4 +1,5 @@
 ﻿using PokemonReviewApp.Data;
+using PokemonReviewApp.Dto;
 using PokemonReviewApp.Interfaces;
 using PokemonReviewApp.Models;
 
@@ -13,7 +14,10 @@ namespace PokemonReviewApp.Repository
         }
         public Pokemon GetPokemon(int id)
         {
-            return _context.Pokemons.Where(p => p.Id == id).FirstOrDefault();
+            var pokemon = _context.Pokemons.Where(p => p.Id == id).FirstOrDefault();
+            pokemon.PokemonOwners = _context.PokemonOwners.Where(po => po.PokemonId == pokemon.Id).ToList();
+            pokemon.PokemonCategories = _context.PokemonCategories.Where(po => po.PokemonId == pokemon.Id).ToList();
+            return pokemon;
         }
 
         public ICollection<Pokemon> SearchPokemon(string name)
@@ -44,27 +48,83 @@ namespace PokemonReviewApp.Repository
             return _context.Pokemons.OrderBy(p => p.Id).ToList();
         }
 
-        public bool CreatePokemon(int ownerId, int categoryId, Pokemon pokemon)
+        public bool CreatePokemon(PokemonDto pokemon)
         {
-            var pokemonOwnerEntity = _context.Owners.Where(o => o.Id == ownerId).FirstOrDefault();
-            var pokemonCategoryEntity = _context.Categories.Where(c => c.Id == categoryId).FirstOrDefault();
+            var pokemonOwnerEntity = _context.Owners.Where(o => o.Id == pokemon.OwnerId).FirstOrDefault();
+            var pokemonCategoryEntity = _context.Categories.Where(c => c.Id == pokemon.CategoryId).FirstOrDefault();
+
+            Pokemon newPokemon = new Pokemon()
+            {
+                Name = pokemon.Name,
+                BirthDate = pokemon.BirthDate
+            };
 
             var pokemonOwner = new PokemonOwner()
             {
                 Owner = pokemonOwnerEntity,
-                Pokemon = pokemon
+                Pokemon = newPokemon
             };
             _context.Add(pokemonOwner);
             var pokemonCategory = new PokemonCategory()
             {
                 Category = pokemonCategoryEntity,
-                Pokemon = pokemon
+                Pokemon = newPokemon
             };
 
             _context.Add(pokemonCategory);
 
-            _context.Add(pokemon);
+            _context.Add(newPokemon);
             
+            return Save();
+        }
+
+        public bool DeletePokemon(int id)
+        {
+            var pokemon = GetPokemon(id);
+            _context.Remove(pokemon);
+            return Save();
+        }
+
+        public bool UpdatePokemon(int ownerId, int categoryId, Pokemon pokemon)
+        {
+            var pokemonOwnerEntity = _context.Owners.Where(o => o.Id == ownerId).FirstOrDefault();
+            var pokemonCategoryEntity = _context.Categories.Where(c => c.Id == categoryId).FirstOrDefault();
+            var existingPokemonOwner = _context.PokemonOwners.Where(po => po.Pokemon.Id == pokemon.Id).FirstOrDefault();
+            if (existingPokemonOwner != null)
+            {
+                _context.Remove(existingPokemonOwner); // ✅ Delete old relationship
+            }
+            var newPokemonOwner = new PokemonOwner()
+            {
+                PokemonId = pokemon.Id,
+                OwnerId = ownerId, // ⚠️ Set IDs directly, not entities (avoids lazy loading issues)
+                                  // If you need navigation properties, you can assign them too:
+                                  // Pokemon = pokemon,
+                                  // Owner = pokemonOwnerEntity
+            };
+            _context.Add(newPokemonOwner);
+
+
+            var existingPokemonCategory = _context.PokemonCategories
+                .Where(pc => pc.PokemonId == pokemon.Id)
+                .FirstOrDefault();
+
+            if (existingPokemonCategory != null)
+            {
+                _context.Remove(existingPokemonCategory); // ✅ Delete old relationship
+            }
+
+            // Always add new relationship (even if none existed)
+            var newPokemonCategory = new PokemonCategory()
+            {
+                PokemonId = pokemon.Id,
+                CategoryId = categoryId, // ⚠️ Set IDs directly, not entities (avoids lazy loading issues)
+                                         // If you need navigation properties, you can assign them too:
+                                         // Pokemon = pokemon,
+                                         // Category = pokemonCategoryEntity
+            };
+            _context.Add(newPokemonCategory);
+            _context.Update(pokemon);
             return Save();
         }
 
